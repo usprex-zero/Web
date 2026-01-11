@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prexus Hub - Official (Edit Mode)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #050505; color: white; user-select: none; -webkit-user-select: none; scroll-behavior: smooth; }
+        .script-card { transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); border: 1px solid #1f2937; background: #0a0a0a; border-radius: 2.5rem; }
+        .script-card:hover { transform: translateY(-8px); border-color: #9333ea; box-shadow: 0 20px 30px -10px rgba(147, 51, 234, 0.3); }
+        .premium-border { border-color: #ca8a04 !important; box-shadow: 0 0 20px rgba(202, 138, 4, 0.15); }
+        .custom-scroll::-webkit-scrollbar { width: 6px; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #1f2937; border-radius: 10px; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col custom-scroll">
+
+<header class="p-6 lg:p-10 flex flex-col md:flex-row justify-between items-center gap-6 border-b border-gray-900 sticky top-0 bg-black/80 backdrop-blur-md z-50">
+    <div class="flex items-center gap-4">
+        <h1 class="text-4xl font-black italic uppercase tracking-tighter">PREXUS<span class="text-purple-600">HUB</span></h1>
+    </div>
+    <div class="flex items-center gap-3 w-full md:w-auto">
+        <input type="text" id="searchInput" oninput="handleSearch()" class="flex-1 md:w-80 bg-gray-900 border border-gray-800 rounded-2xl py-4 px-6 outline-none focus:border-purple-500 text-sm transition-all" placeholder="Cari script..."/>
+        <div id="mngrArea" class="hidden flex gap-2">
+            <button onclick="openAddPanel()" class="bg-green-600 px-5 py-2 rounded-xl text-[10px] font-bold uppercase">Add</button>
+            <button onclick="killSession()" class="bg-red-600 px-5 py-2 rounded-xl text-[10px] font-bold uppercase">Exit</button>
+        </div>
+        <button id="adminBtn" onclick="openAdminModal()" class="bg-gray-800 px-5 py-3 rounded-2xl text-[10px] font-bold border border-gray-700 uppercase tracking-widest">Admin</button>
+    </div>
+</header>
+
+<main class="flex-1 p-6 lg:p-10 max-w-7xl mx-auto w-full">
+    <div class="flex flex-wrap gap-3 items-center mb-10">
+        <div id="statusBadge" class="px-5 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest bg-gray-800 text-gray-400 border border-gray-700">Checking...</div>
+        <div onclick="copyManual(myHWID, 'ID Perangkat')" class="cursor-pointer px-5 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest bg-purple-900/20 text-purple-400 border border-purple-500/30 hover:bg-purple-900/40 transition-all">
+            ID: <span id="displayHWID">...</span> (TAP TO COPY)
+        </div>
+    </div>
+
+    <div id="addPanel" class="hidden bg-gray-900/50 backdrop-blur-sm p-8 rounded-[3rem] mb-12 border border-purple-500/20">
+        <h2 id="panelTitle" class="text-xl font-black mb-4 uppercase text-purple-500">Tambah Script</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <input id="edit_id" type="hidden" />
+            <input id="in_name" type="text" class="p-4 bg-gray-800 rounded-2xl outline-none border border-gray-700 focus:border-purple-500" placeholder="Nama Script"/>
+            <input id="in_url" type="text" class="p-4 bg-gray-800 rounded-2xl outline-none border border-gray-700 focus:border-purple-500" placeholder="Loadstring URL"/>
+            <input type="file" id="in_file" class="md:col-span-2 w-full p-4 bg-gray-800 rounded-2xl text-xs border border-dashed border-gray-700"/>
+            <div class="flex gap-3 md:col-span-2">
+                <button id="btnSave" onclick="commitSave()" class="flex-1 bg-purple-600 py-5 rounded-2xl font-black uppercase tracking-widest">Upload</button>
+                <button onclick="closeAddPanel()" class="bg-gray-700 px-10 rounded-2xl font-bold uppercase">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="viewMain" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-10 mb-20"></div>
+</main>
+
+<div id="authBox" class="fixed inset-0 bg-black/95 flex items-center justify-center z-[100] hidden">
+    <div class="bg-gray-900 p-10 rounded-[3rem] border border-purple-500/30 w-full max-w-md mx-4 text-center">
+        <h2 class="text-3xl font-black mb-8 uppercase">Admin Access</h2>
+        <input id="key_u" type="text" class="w-full p-5 bg-gray-800 rounded-2xl mb-4 outline-none" placeholder="Username"/>
+        <input id="key_p" type="password" class="w-full p-5 bg-gray-800 rounded-2xl mb-8 outline-none" placeholder="Password"/>
+        <button onclick="processAuth()" class="w-full bg-purple-600 py-5 rounded-2xl font-black uppercase">Login</button>
+        <button onclick="hideAuth()" class="mt-6 text-gray-600 text-[10px] font-bold uppercase">Close</button>
+    </div>
+</div>
+
+<script>
+const CLOUD_PREMIUM = "https://pastebin.com/raw/hc1bPQAN"; 
+const CLOUD_ADMIN = "https://pastebin.com/raw/JdVgP7AT";
+const _u_ref = "bWUgd2V5IG1lIHByZXYgb24gaGFzIHNjcmlwdA=="; 
+const _p_ref = "YW5kIHlvdSBlbHNlIGh0bWwgc2NyaXB0"; 
+
+const myHWID = btoa(navigator.userAgent + screen.width).substring(0, 12);
+let is_premium = false, is_auth = localStorage.getItem('_prx_auth') === 'true';
+let db = JSON.parse(localStorage.getItem('_prx_db')) || [];
+let filteredDb = [...db];
+
+function checkLimitStatus() {
+    if (is_premium || is_auth) return { allow: true };
+    const now = Date.now();
+    let usage = JSON.parse(localStorage.getItem('_prx_usage_v2')) || { count: 0, lastReset: now };
+    const COOLDOWN = 16 * 60 * 60 * 1000;
+    if (now - usage.lastReset >= COOLDOWN) { usage.count = 0; usage.lastReset = now; }
+    if (usage.count >= 3) {
+        const left = COOLDOWN - (now - usage.lastReset);
+        const h = Math.floor(left / 3600000), m = Math.floor((left % 3600000) / 60000);
+        return { allow: false, wait: `${h}j ${m}m` };
+    }
+    return { allow: true, data: usage };
+}
+
+function copyManual(text, label) {
+    const el = document.createElement("textarea"); el.value = text;
+    document.body.appendChild(el); el.select();
+    const ok = document.execCommand('copy'); document.body.removeChild(el);
+    if (ok) alert(label + " disalin!"); else prompt("Salin manual:", text);
+}
+
+function copyLoadstring(enc, btn) {
+    const url = decodeURIComponent(enc);
+    const limit = checkLimitStatus();
+    if (!limit.allow) {
+        alert(`LIMIT COPY HABIS!\nSilakan tunggu ${limit.wait} lagi atau beli Premium sekarang.`);
+        return;
+    }
+    const el = document.createElement("textarea"); el.value = url;
+    document.body.appendChild(el); el.select();
+    if (document.execCommand('copy')) {
+        if (!is_premium && !is_auth) {
+            limit.data.count++;
+            localStorage.setItem('_prx_usage_v2', JSON.stringify(limit.data));
+        }
+        const old = btn.innerText; btn.innerText = "COPIED! ✅";
+        btn.classList.replace('bg-purple-600', 'bg-green-600');
+        setTimeout(() => { btn.innerText = old; btn.classList.replace('bg-green-600', 'bg-purple-600'); }, 1500);
+    } else { prompt("Copy manual:", url); }
+    document.body.removeChild(el);
+}
+
+async function syncData() {
+    try {
+        const t = Date.now();
+        const [resA, resP] = await Promise.all([fetch(CLOUD_ADMIN+"?t="+t), fetch(CLOUD_PREMIUM+"?t="+t)]);
+        const listA = await resA.text(), listP = await resP.text();
+        is_premium = listP.includes(myHWID);
+    } catch (e) {}
+    updateUI(); renderScripts();
+}
+
+function updateUI() {
+    document.getElementById('displayHWID').innerText = myHWID;
+    const b = document.getElementById('statusBadge');
+    if (is_premium) {
+        b.innerText = "✨ PREMIUM ACTIVE ✨";
+        b.className = "px-5 py-2 rounded-full text-[10px] font-bold uppercase bg-yellow-600 text-white border border-yellow-400 shadow-lg";
+    } else {
+        b.innerText = "FREE USER (LIMIT: 3 / 16H)";
+    }
+    if (is_auth) document.getElementById('mngrArea').classList.remove('hidden');
+    if (is_auth) document.getElementById('adminBtn').classList.add('hidden');
+}
+
+function renderScripts() {
+    const c = document.getElementById('viewMain');
+    c.innerHTML = filteredDb.map(i => `
+        <div class="script-card p-2 relative ${is_premium ? 'premium-border' : ''}">
+            ${is_auth ? `
+                <div class="absolute top-6 right-6 flex gap-2 z-10">
+                    <button onclick="editScript(${i.id})" class="bg-blue-600 hover:bg-blue-500 p-3 rounded-2xl text-[10px] transition-all">✏️</button>
+                    <button onclick="deleteScript(${i.id})" class="bg-red-600 hover:bg-red-500 p-3 rounded-2xl text-[10px] transition-all">🗑️</button>
+                </div>
+            ` : ''}
+            <img src="${i.img}" class="w-full h-52 object-cover rounded-[2rem] mb-4 bg-gray-900">
+            <div class="p-6 text-center">
+                <h3 class="font-black text-lg mb-6 truncate uppercase">${i.name}</h3>
+                <button onclick="copyLoadstring('${encodeURIComponent(i.url)}', this)" class="w-full bg-purple-600 py-4 rounded-[1.5rem] text-[10px] font-black uppercase tracking-widest active:scale-95 transition-all">Copy Loadstring</button>
+            </div>
+        </div>`).join('');
+}
+
+function processAuth() {
+    const u = document.getElementById('key_u').value, p = document.getElementById('key_p').value;
+    if (u === atob(_u_ref) && p === atob(_p_ref)) {
+        localStorage.setItem('_prx_auth', 'true'); location.reload();
+    } else alert("Salah!");
+}
+
+function commitSave() {
+    const id = document.getElementById('edit_id').value;
+    const n = document.getElementById('in_name').value, u = document.getElementById('in_url').value;
+    
+    if(!n || !u) return alert("Nama dan URL wajib diisi!");
+    
+    if (id) {
+        // Mode Update
+        const index = db.findIndex(i => i.id == id);
+        if (index !== -1) {
+            db[index].name = n;
+            db[index].url = u;
+            if (window._temp) db[index].img = window._temp; // Ganti gambar jika ada yang baru dipilih
+        }
+    } else {
+        // Mode Baru
+        if(!window._temp) return alert("Gambar wajib dipilih!");
+        db.unshift({ id: Date.now(), name: n, url: u, img: window._temp });
+    }
+    
+    localStorage.setItem('_prx_db', JSON.stringify(db)); 
+    location.reload();
+}
+
+function editScript(id) {
+    const data = db.find(i => i.id == id);
+    if (data) {
+        document.getElementById('edit_id').value = data.id;
+        document.getElementById('in_name').value = data.name;
+        document.getElementById('in_url').value = data.url;
+        document.getElementById('panelTitle').innerText = "Edit Script";
+        document.getElementById('btnSave').innerText = "Update Script";
+        openAddPanel();
+        window.scrollTo(0, 0);
+    }
+}
+
+document.getElementById('in_file').onchange = (e) => {
+    const r = new FileReader(); r.onload = (ev) => window._temp = ev.target.result;
+    r.readAsDataURL(e.target.files[0]);
+};
+
+function deleteScript(id) { if(confirm("Hapus?")) { db = db.filter(i => i.id !== id); localStorage.setItem('_prx_db', JSON.stringify(db)); renderScripts(); } }
+function handleSearch() { const q = document.getElementById('searchInput').value.toLowerCase(); filteredDb = db.filter(i => i.name.toLowerCase().includes(q)); renderScripts(); }
+function openAdminModal() { document.getElementById('authBox').classList.remove('hidden'); }
+function hideAuth() { document.getElementById('authBox').classList.add('hidden'); }
+
+function openAddPanel() { 
+    document.getElementById('addPanel').classList.remove('hidden'); 
+}
+
+function closeAddPanel() { 
+    document.getElementById('addPanel').classList.add('hidden'); 
+    // Reset form saat tutup
+    document.getElementById('edit_id').value = "";
+    document.getElementById('in_name').value = "";
+    document.getElementById('in_url').value = "";
+    document.getElementById('panelTitle').innerText = "Tambah Script";
+    document.getElementById('btnSave').innerText = "Upload";
+    window._temp = null;
+}
+
+function killSession() { localStorage.removeItem('_prx_auth'); location.reload(); }
+
+window.onload = syncData;
+</script>
+</body>
+</html>
